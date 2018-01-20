@@ -14,5 +14,8 @@ export class Message {
     responseData: {
         data: [string] // for radio, checkbox and slider
     };
-    lastUpdateTime: any;
+    createdBy: string;
+    updatedBy: string;
+    createdTime: any;
+    updatedTime: any;
 }

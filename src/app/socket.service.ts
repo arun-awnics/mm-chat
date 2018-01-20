@@ -1,45 +1,53 @@
 import { Injectable } from '@angular/core';
 import { Message } from './interfaces/message';
+import { Observable } from 'rxjs/Observable';
+import { of } from 'rxjs/observable/of';
+import { catchError, map, tap } from 'rxjs/operators';
 import * as io from 'socket.io-client';
 
 @Injectable()
 export class SocketService {
     private socket;
-    private URL = 'http://localhost:3000';
-    private groups= [];
+    private baseUrl = 'http://localhost:3000';
+
     constructor() {
-        // this.socket = io.connect('http://localhost:3000');
-    }
-    // Socket connection based on userId
-    connSocket(userId) {
-        this.socket = io(this.URL, { query: `userId=${userId}` });
-    }
-    // when user join 1st tyme to a group
-    joinGroup(groupId) {
-        console.log('join group called', groupId);
-        this.socket.emit('joinGroup', groupId);
-        this.socket.on('updateGroup', groupid => {
-            console.log(groupId);
-            this.socket.emit('updateGroup', ' you have connected in' + groupid + 'group');
-          //  document.getElementById('textarea').innerHTML = '';
-        });
-    }
-    // for sending a message
-    sendMessage(message: Message) {
-        this.socket.emit('send-message', message);
-        // console.log('socket message' + JSON.stringify(message));
     }
 
-    getMessages() {
-        this.socket.on('recive-message', message => {
-            console.log('message is recived' + message.text);
-            this.socket.emit('recive-message', message.text);
+    // send userId with connection to the server
+    connection(userId) {
+        this.socket = io(this.baseUrl, { query: `userId=${userId}` });
+        this.socket.on('connect', () => {
+            this.socket.emit('user-connected', userId);
         });
     }
-    typing() {
-        this.socket.emit('typing');
+
+    sendMessage(message: Message) {
+        this.socket.emit('send-message', message);
     }
-    stopTyping() {
-      this.socket.emit('stop typing');
+
+    logout(userId): any {
+        this.socket.emit('logout', userId);
+        const observable = new Observable(observer => {
+            this.socket.on('logout-response', (data) => {
+                observer.next(data);
+            });
+            return () => {
+                this.socket.disconnect();
+            };
+        });
+        return observable;
+    }
+
+    receiveMessages(): any {
+        const observable = new Observable(observer => {
+            this.socket.on('receive-message', (data) => {
+                observer.next(data);
+                console.log('message received: ', data);
+            });
+            return () => {
+                this.socket.disconnect();
+            };
+        });
+        return observable;
     }
 }

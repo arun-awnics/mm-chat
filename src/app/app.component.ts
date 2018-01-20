@@ -1,6 +1,9 @@
 import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { User } from './interfaces/user';
 import { UserService } from './user.service';
+import { SocketService } from './socket.service';
+import { ChatService } from './chat.service';
 
 @Component({
   selector: 'app-root',
@@ -10,8 +13,12 @@ import { UserService } from './user.service';
 export class AppComponent implements OnInit {
 
   private users: User[] = [];
+  private user: User;
   constructor(
-    private userService: UserService
+    private userService: UserService,
+    private socketService: SocketService,
+    private chatService: ChatService,
+    private router: Router
   ) {
   }
 
@@ -26,11 +33,9 @@ export class AppComponent implements OnInit {
 
   hideList() {
     document.getElementById('userList').style.display = 'none';
-    document.getElementById('logout').style.display = 'block';
   }
 
   showList() {
-    document.getElementById('userList').style.display = 'block';
-    document.getElementById('logout').style.display = 'none';
+    document.getElementById('userList').style.display = 'inline';
   }
 }

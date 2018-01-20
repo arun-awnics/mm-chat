@@ -21,13 +21,22 @@ export class UserService {
 
   /** GET users from the server */
   getUsers (): Observable<User[]> {
-    const userId = 1;
     return this.http.get<User[]>(`${this.userUrl}getUsers`)
       .pipe(
           map(users => users),
           tap(users => console.log(users)),
         catchError(this.handleError('getUsers', []))
       );
+  }
+
+  /** GET userById from the server */
+  getUserById(id: number): Observable<User> {
+    const url = `${this.userUrl}getUserById/${id}`;
+    return this.http.get<User>(url).pipe(
+      map(user => user),
+      tap(user => console.log('fetched user: ', JSON.stringify(user))),
+      catchError(this.handleError<User>(`getUserById id=${id}`))
+    );
   }
 
   //////// Save methods //////////

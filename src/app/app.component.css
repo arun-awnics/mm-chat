@@ -1,5 +1,4 @@
 a {
-    display: block;
     border: 1px solid #000000;
     padding: 5px;
     margin: 2px;
@@ -8,6 +7,6 @@ a {
     color: #FFFFFF;
 }
 
-#logout {
-    display: none;
+#userList {
+    display: inline;
 }

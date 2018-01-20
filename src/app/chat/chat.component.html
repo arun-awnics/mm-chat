@@ -1,4 +1,15 @@
 <div class="container">
+    <div class="row selected-user" *ngIf="selectedUser;">
+        <div class="col col-10">
+            {{selectedUser.name}}
+            <img class="img-lg" src="{{selectedUser.picUrl}}" alt="Display picture" />
+        </div>
+        <div class="col col-2">
+            <a class="logout-button" routerLink="/" (click)="logout()">Logout</a>
+        </div>
+    </div>
+</div>
+<div class="container">
     <div class="row">
         <div class="col col-3 list">
             <div class="row">
@@ -8,7 +19,7 @@
                     </div>
                 </form>
             </div>
-            <div class="row groupSelect" *ngFor="let group of groups" (click)="getMessage(group.id,0)">
+            <div class="row groupSelect" *ngFor="let group of groups" (click)="getMessage(group)">
                 <div class="col col-3">
                     <img class="img-sm" src="{{group.picture}}" alt="Display picture" />
                 </div>
@@ -23,28 +34,57 @@
             </div>
         </div>
         <div class="col col-9 chatBox">
-            <div class="row title">
+            <div class="row title" *ngIf="selectedGroup else loadThis">
                 <div class="col col-2">
-                    <img class="img-lg" src="http://www.onsiteinspecting.com/wp-content/uploads/2016/02/male-user.png" alt="Display picture" />
+                    <img class="img-lg" src="{{selectedGroup.picture}}" alt="Display picture" />
                 </div>
                 <div class="col col-10">
-                    <div class="row">selectedGroupName</div>
-                    <div class="row">No. of messages</div>
+                    <div class="row">{{selectedGroup.name}}</div>
+                    <div class="row">Created by: {{selectedGroup.createdBy}}</div>
                 </div>
             </div>
+            <ng-template #loadThis>
+                <i class="fa fa-spinner fa-spin fa-3x fa-fw"></i>
+                <span class="sr-only">Loading...</span>
+            </ng-template>
             <div class="row messageBox" id="messageBox" (scroll)="onScroll($event)">
                 <div class="container" *ngFor="let message of messages">
-                    <p>{{message.text}}</p>
+                    <div *ngIf="messageAlign else alignRight">
+                        <div class="row text-box-left">
+                            <div class="row text-message">
+                                <div class="col">
+                                    {{message.createdBy}}
+                                    <img class="img-sm" src="{{message.picUrl}}" alt="Display picture" />
+                                </div>
+                                <div class="col">
+                                    {{message.text}}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <ng-template #alignRight>
+                        <div class="row text-box-right">
+                            <div class="row text-message">
+                                <div class="col">
+                                    {{message.createdBy}}
+                                    <img class="img-sm" src="{{message.picUrl}}" alt="Display picture" />
+                                </div>
+                                <div class="col">
+                                    {{message.text}}
+                                </div>
+                            </div>
+                        </div>
+                    </ng-template>
                 </div>
             </div>
             <div class="row">
                 <form novalidate [formGroup]="message" (ngSubmit)="sendMessage(message)">
                     <div class="form-group">
                         <div class="input-group">
-                            <textarea id="textarea" class="form-control" formControlName="text" rows="3" cols="120" placeholder="Type your message..."></textarea>
+                            <input type="text" class="form-control" formControlName="text" placeholder="Type your message...">
+                            <button type="submit" class="btn btn-primary" [disabled]="message.invalid">Submit</button>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary" [disabled]="message.invalid">Submit</button>
                 </form>
             </div>
         </div>

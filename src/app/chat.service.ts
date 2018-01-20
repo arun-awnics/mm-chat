@@ -6,6 +6,8 @@ import { of } from 'rxjs/observable/of';
 import { catchError, map, tap } from 'rxjs/operators';
 
 import { Message } from './interfaces/message';
+import { User } from './interfaces/user';
+import { Group } from './interfaces/group';
 
 const httpOptions = {
   headers: new HttpHeaders({ 'Content-Type': 'application/json' })
@@ -14,18 +16,27 @@ const httpOptions = {
 @Injectable()
 export class ChatService {
 
-  private groupId;
+  private user: User;
+  private group: Group;
   private messageUrl = 'http://localhost:3000/message/controllers/';  // URL to server
 
   constructor(
     private http: HttpClient) { }
 
-    setGroupId(groupId) {
-      this.groupId = groupId;
+    setUser(user) {
+      this.user = user;
     }
 
-    getGroupId() {
-      return this.groupId;
+    setGroup(group) {
+      this.group = group;
+    }
+
+    getUser() {
+      return this.user;
+    }
+
+    getGroup() {
+      return this.group;
     }
 
   /** GET messages from the server */

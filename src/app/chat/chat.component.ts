@@ -2,12 +2,16 @@ import { Component, OnInit, AfterViewChecked, Input } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
 import { FormBuilder, FormGroup, FormControl } from '@angular/forms';
+import * as io from 'socket.io-client';
+
 import { Group } from '../interfaces/group';
 import { Message } from '../interfaces/message';
 import { User } from '../interfaces/user';
 import { ChatService } from '../chat.service';
 import { GroupService } from '../group.service';
+import { UserService } from '../user.service';
 import { SocketService } from '../socket.service';
+import { AppComponent } from '../app.component';
 
 @Component({
   selector: 'app-chat',
@@ -16,40 +20,45 @@ import { SocketService } from '../socket.service';
 })
 export class ChatComponent implements OnInit, AfterViewChecked {
 
-  @Input() user: User;
+  private userId: number; // to initialize the user logged in
+  private selectedUser: User;
+  private selectedGroup: Group;
   private groups: Group[] = [];
-  private users: User[] = [];
   private messages: Message[] = [];
   private message: FormGroup;
-  private groupId: number;
-  private socketMessage: Message[] = [];
-  private typingTimerLength= 500;
-  private typing = false ;
-  private lastTypingTime;
-  private typingTimer;
-  private timeDiff;
   private oldGroupId = 1;
   private offset = 0;
+  private socket;
+  private messageAlign: boolean;
+
   constructor(
     private fb: FormBuilder,
     private chatService: ChatService,
     private groupService: GroupService,
     private route: ActivatedRoute,
     private location: Location,
-    private socketService: SocketService
+    private socketService: SocketService,
+    private userService: UserService,
+    private appComponent: AppComponent
   ) {
   }
 
   ngOnInit(): void {
-    this.getGroup();
+    this.userId = +this.route.snapshot.paramMap.get('userId');
+    this.userService.getUserById(this.userId)
+      .subscribe(user => this.selectedUser = user);
+    this.chatService.setUser(this.selectedUser);
+    this.socketService.connection(this.userId);
+    this.getGroups();
     this.createForm();
+    this.receiveMessageFromSocket();
   }
 
   createForm() {
     this.message = this.fb.group({
       _id: null, // message id
       receiverId: [''],
-      receiverType: ['group'], // group or individual
+      receiverType: [''], // group or individual
       senderId: [''],
       picUrl: [''], // image of the sender or receiver
       text: [''], // message data
@@ -62,7 +71,10 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       responseData: {
         data: [''] // for radio, checkbox and slider
       },
-      lastUpdateTime: Date.now()
+      createdBy: [''],
+      updatedBy: [''],
+      createdTime: Date.now(),
+      updatedTime: Date.now()
     });
   }
 
@@ -72,50 +84,58 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   sendMessage({ value, valid }: { value: Message, valid: boolean }): void {
     const result = JSON.stringify(value);
-    const userId = +this.route.snapshot.paramMap.get('userId');
-    const groupId = this.chatService.getGroupId();
-    value.receiverId = groupId;
-    value.senderId = userId;
-    console.log(result);
-    if (!result) {
+    value.receiverId = this.chatService.getGroup().id;
+    value.senderId = this.selectedUser.id;
+    value.receiverType = 'group';
+    console.log('value: ', JSON.stringify(value));
+    if (value.text === '') {
       return;
     } else {
-      this.chatService.sendMessage(value)
-        .subscribe(msg => { this.messages.push(msg); console.log(msg); });
+      this.socketService.sendMessage(value);
     }
     this.message.reset();
   }
 
-  getGroup() {
-    const userId = +this.route.snapshot.paramMap.get('userId');
-    this.groupService.getGroups(userId)
+  receiveMessageFromSocket() {
+    this.socketService.receiveMessages()
+      .subscribe((msg) => {
+        if (msg.receiverId === this.selectedGroup.id) {
+          if (msg.senderId === this.selectedUser.id) {
+            this.messageAlign = false;
+          } else {
+            this.messageAlign = true;
+          }
+          this.messages.push(msg);
+        }
+      });
+  }
+
+
+  getGroups() {
+    this.groupService.getGroups(this.userId)
       .subscribe(groups => this.groups = groups);
   }
 
-  getMessage(groupId) {
-    this.chatService.setGroupId(groupId);
-    const userId = +this.route.snapshot.paramMap.get('userId');
+  getMessage(group: Group) {
+    this.chatService.setGroup(group);
+    this.selectedGroup = group;
     const size = 20;
-    if (this.oldGroupId === groupId) {
-      this.chatService.getMessages(userId, groupId, this.offset, size)
+    if (this.oldGroupId === group.id) {
+      this.chatService.getMessages(this.selectedUser.id, group.id, this.offset, size)
         .subscribe((msg) => {
           msg.reverse().map((message) => {
             this.messages.push(message);
           });
-          this.socketService.joinGroup(groupId);
-         this.socketService.getMessages();
         });
     } else {
       this.messages = [];
       this.offset = 0;
-      this.oldGroupId = groupId;
-      this.chatService.getMessages(userId, groupId, this.offset, size)
+      this.oldGroupId = group.id;
+      this.chatService.getMessages(this.selectedUser.id, group.id, this.offset, size)
         .subscribe((msg) => {
           msg.reverse().map((message) => {
             this.messages.push(message);
           });
-          // this.socketService.joinGroup(groupId);
-         // this.socketService.getMessages();
         });
     }
   }
@@ -124,12 +144,20 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     const position = event.target.scrollTop;
     if (position === 0) {
       this.offset = this.offset + 20;
-      this.getMessage(this.chatService.getGroupId());
+      this.getMessage(this.selectedGroup);
     }
   }
 
   scrollToBottom() {
     const height = document.getElementById('messageBox');
     height.scrollTop = height.scrollHeight;
+  }
+
+  logout() {
+    this.socketService.logout(this.selectedUser.id).
+      subscribe((data) => {
+        console.log(data.msg);
+      });
+    this.appComponent.showList();
   }
 }
