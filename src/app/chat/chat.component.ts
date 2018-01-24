@@ -30,6 +30,8 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   private offset = 0;
   private socket;
   private messageAlign: boolean;
+  private typingMessage: string;
+  private typing = false;
 
   constructor(
     private fb: FormBuilder,
@@ -52,6 +54,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.getGroups();
     this.createForm();
     this.receiveMessageFromSocket();
+    this.receiveTyping();
   }
 
   createForm() {
@@ -100,12 +103,12 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.socketService.receiveMessages()
       .subscribe((msg) => {
         if (msg.receiverId === this.selectedGroup.id) {
+          this.messages.push(msg);
           if (msg.senderId === this.selectedUser.id) {
             this.messageAlign = false;
           } else {
             this.messageAlign = true;
           }
-          this.messages.push(msg);
         }
       });
   }
@@ -159,5 +162,24 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         console.log(data.msg);
       });
     this.appComponent.showList();
+  }
+
+  sendTyping() {
+    this.typing = true;
+    const sender = this.selectedUser;
+    const receiver = this.selectedGroup;
+    const receiverType = 'group';
+    this.socketService.sendTyping(sender, receiver, receiverType);
+    setTimeout(() => {
+      this.typing = false;
+    }, 2000);
+  }
+
+  receiveTyping() {
+    console.log('receiving typing message in component');
+    this.socketService.receiveTyping()
+    .subscribe((data) => {
+      this.typingMessage =  data + ' is typing...';
+    });
   }
 }

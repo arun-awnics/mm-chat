@@ -1,5 +1,6 @@
 export class User {
     id: any;
+    socketId: string;
     name: string;
     email: string;
     phoneNo: string;

@@ -41,6 +41,9 @@
                 <div class="col col-10">
                     <div class="row">{{selectedGroup.name}}</div>
                     <div class="row">Created by: {{selectedGroup.createdBy}}</div>
+                    <div class="row" *ngIf="typing">
+                        {{typingMessage}}
+                    </div>
                 </div>
             </div>
             <ng-template #loadThis>
@@ -78,7 +81,7 @@
                 </div>
             </div>
             <div class="row">
-                <form novalidate [formGroup]="message" (ngSubmit)="sendMessage(message)">
+                <form novalidate [formGroup]="message" (ngSubmit)="sendMessage(message)" (input)="sendTyping()">
                     <div class="form-group">
                         <div class="input-group">
                             <input type="text" class="form-control" formControlName="text" placeholder="Type your message...">

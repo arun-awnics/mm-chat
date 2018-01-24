@@ -15,7 +15,7 @@ export class SocketService {
 
     // send userId with connection to the server
     connection(userId) {
-        this.socket = io(this.baseUrl, { query: `userId=${userId}` });
+        this.socket = io(`${this.baseUrl}`, { query: `userId=${userId}` });
         this.socket.on('connect', () => {
             this.socket.emit('user-connected', userId);
         });
@@ -47,6 +47,26 @@ export class SocketService {
             return () => {
                 this.socket.disconnect();
             };
+        });
+        return observable;
+    }
+
+    sendTyping(sender, receiver, receiverType) {
+        const data = {
+            sender: sender,
+            receiver: receiver,
+            receiverType: receiverType
+        };
+        this.socket.emit('send-typing', (data));
+        console.log('sending typing message', data);
+    }
+
+    receiveTyping() {
+        const observable = new Observable(observer => {
+            this.socket.on('receive-typing', (data) => {
+                observer.next(data.sender.name);
+                console.log('received typing message');
+            });
         });
         return observable;
     }
